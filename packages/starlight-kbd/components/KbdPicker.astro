@@ -1,0 +1,61 @@
+---
+import type { ComponentProps } from 'astro/types'
+import config from 'virtual:starlight-kbd/config'
+
+import { getTypeLabel } from '../libs/i18n'
+
+import Select from './Select.astro'
+
+let value = ''
+const options = config.types.map((type) => {
+  if (type.default) value = type.id
+  return {
+    label: getTypeLabel(Astro.currentLocale, type),
+    selected: type.default,
+    value: type.id,
+  } satisfies ComponentProps<typeof Select>['options'][number]
+})
+---
+
+<starlight-kbd-picker>
+  <Select label={Astro.locals.t('starlightKbd.kbdPicker.accessibleLabel')} {options} {value} />
+</starlight-kbd-picker>
+
+<script is:inline>
+  StarlightKbdProvider.updateKbdPickers(typeof localStorage !== 'undefined' && localStorage.getItem('sl-kbd-type'))
+</script>
+
+<script>
+  customElements.define(
+    'starlight-kbd-picker',
+    class StarlightKbdSelect extends HTMLElement {
+      constructor() {
+        super()
+
+        this.querySelector('select')?.addEventListener('change', (event) => {
+          if (!(event.currentTarget instanceof HTMLSelectElement)) return
+
+          StarlightKbdProvider.updateKbdPickers(event.currentTarget.value)
+
+          for (const kbd of document.querySelectorAll('[data-sl-kbd-type]')) {
+            if (kbd.getAttribute('data-sl-kbd-type') === event.currentTarget.value) {
+              kbd.setAttribute('data-sl-kbd-active', '')
+            } else {
+              kbd.removeAttribute('data-sl-kbd-active')
+            }
+          }
+
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('sl-kbd-type', event.currentTarget.value)
+          }
+        })
+      }
+    },
+  )
+</script>
+
+<style>
+  :global(.sl-markdown-content) starlight-kbd-picker {
+    display: inline-block;
+  }
+</style>

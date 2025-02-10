@@ -1,0 +1,13 @@
+<script is:inline>
+  window.StarlightKbdProvider = (() => {
+    return {
+      updateKbdPickers(type) {
+        for (const select of document.querySelectorAll('starlight-kbd-picker select')) {
+          const isKnownType = Array.from(select.options).some((option) => option.value === type)
+          if (!isKnownType) return
+          select.value = type
+        }
+      },
+    }
+  })()
+</script>

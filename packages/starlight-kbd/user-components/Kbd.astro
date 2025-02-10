@@ -1,0 +1,127 @@
+---
+import config from 'virtual:starlight-kbd/config'
+
+import { getKbdFromString, getKbdLabel } from '../libs/kbd'
+
+export type Props = Record<string, string>
+
+const defaultKbd = Astro.props[config.defaultType]
+
+if (!defaultKbd) {
+  throw new Error(
+    `No shortcut defined for default type \`${config.defaultType}\`, only got: ${Object.keys(Astro.props)
+      // eslint-disable-next-line prefer-template
+      .map((type) => '`' + type + '`')
+      .join(', ')}.`,
+  )
+}
+
+/**
+ * The restoration script is inlined to avoid a flash of invalid active kbd type and is only included once per page.
+ * We keep track of whether the script has been rendered using a variable stored using `Astro.locals` with an untyped
+ * symbol to avoid users to get autocomplete for it and also avoid potential clashes with user-defined variables.
+ */
+const didRenderKbdRestoreScriptSymbol = Symbol.for('starlight-kbd:did-render-restore-script')
+// @ts-expect-error - See above
+const shouldRenderKbdRestoreScript = Astro.locals[didRenderKbdRestoreScriptSymbol] !== true
+// @ts-expect-error - See above
+Astro.locals[didRenderKbdRestoreScriptSymbol] = true
+---
+
+{
+  shouldRenderKbdRestoreScript && (
+    <script is:inline>
+      {customElements.define(
+        'starlight-kbd-restore',
+        class StarlightKbdRestore extends HTMLElement {
+          connectedCallback() {
+            const kbd = this.closest('starlight-kbd')
+            if (!(kbd instanceof HTMLElement) || typeof localStorage === 'undefined') return
+            const type = typeof localStorage !== 'undefined' && localStorage.getItem('sl-kbd-type')
+            if (!type) return
+            for (const kbd of document.querySelectorAll('[data-sl-kbd-type]')) {
+              if (kbd.getAttribute('data-sl-kbd-type') === type) {
+                kbd.setAttribute('data-sl-kbd-active', '')
+              } else {
+                kbd.removeAttribute('data-sl-kbd-active')
+              }
+            }
+          }
+        },
+      )}
+    </script>
+  )
+}
+
+<starlight-kbd>
+  {
+    config.types.map((type) => {
+      const kbd = getKbdFromString(Astro.props[type.id] ?? defaultKbd)
+
+      const dataAttributes: DOMStringMap = { 'data-sl-kbd-type': type.id }
+      if (type.id === config.defaultType) dataAttributes['data-sl-kbd-active'] = ''
+
+      return (
+        <span {...dataAttributes}>
+          <span class="sr-only">{getKbdLabel(kbd, { then: Astro.locals.t('starlightKbd.kbd.keywords.then') })}</span>
+          {kbd.map((chord, chordIndex) => {
+            return (
+              <Fragment>
+                {/* prettier-ignore */}
+                <kbd aria-hidden="true" class="sl-kbd-chord">{chord.map((key) => <kbd>{key}</kbd>)}</kbd>
+                {chordIndex < kbd.length - 1 && ' '}
+              </Fragment>
+            )
+          })}
+        </span>
+      )
+    })
+  }
+  <starlight-kbd-restore></starlight-kbd-restore>
+</starlight-kbd>
+
+<style>
+  span[data-sl-kbd-type]:not([data-sl-kbd-active]) {
+    display: none;
+  }
+
+  .sl-kbd-chord:has(+ .sl-kbd-chord) {
+    margin-inline-end: 0.25rem;
+  }
+
+  .sl-kbd-chord kbd {
+    background-color: var(--sl-color-gray-6);
+    border: 1px solid var(--sl-color-gray-4);
+    border-radius: 4px;
+    font-family: var(--sl-font-system-mono);
+    font-size: var(--sl-text-xs);
+    margin-inline: 0.125rem;
+    padding: 0.125rem 0.3125rem;
+  }
+
+  :global(.starlight-aside) .sl-kbd-chord kbd {
+    border-color: var(--sl-color-asides-border);
+  }
+
+  :global(.starlight-aside--note) .sl-kbd-chord kbd {
+    background-color: var(--sl-color-blue-low);
+  }
+
+  :global(.starlight-aside--tip) .sl-kbd-chord kbd {
+    background-color: var(--sl-color-purple-low);
+  }
+
+  :global(.starlight-aside--caution) .sl-kbd-chord kbd {
+    background-color: var(--sl-color-orange-low);
+  }
+
+  :global(.starlight-aside--danger) .sl-kbd-chord kbd {
+    background-color: var(--sl-color-red-low);
+  }
+
+  @supports (background-color: color-mix(in srgb, var(--sl-color-asides-text-accent) 10%, transparent)) {
+    :global(.sl-markdown-content .starlight-aside) .sl-kbd-chord kbd {
+      background-color: color-mix(in srgb, var(--sl-color-asides-text-accent) 10%, transparent);
+    }
+  }
+</style>
