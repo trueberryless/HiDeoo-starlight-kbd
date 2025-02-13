@@ -18,7 +18,8 @@
     "@hideoo/starlight-plugins-docs-components": "^0.3.0",
     "astro": "^5.2.4",
     "sharp": "^0.33.5",
-    "starlight-kbd": "workspace:*"
+    "starlight-kbd": "workspace:*",
+    "starlight-links-validator": "^0.14.2"
   },
   "engines": {
     "node": ">=18.17.1"

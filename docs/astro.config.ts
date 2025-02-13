@@ -1,6 +1,7 @@
 import starlight from '@astrojs/starlight'
 import { defineConfig } from 'astro/config'
 import starlightKbd from 'starlight-kbd'
+import starlightLinksValidator from 'starlight-links-validator'
 
 export default defineConfig({
   integrations: [
@@ -17,6 +18,7 @@ export default defineConfig({
             { id: 'linux', label: 'Linux' },
           ],
         }),
+        starlightLinksValidator(),
       ],
       sidebar: [
         {
